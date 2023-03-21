@@ -7,7 +7,6 @@ const app = express();
 const encode = require("./src/encode");
 const decode = require("./src/decode");
 
-
 // initialize express-ws into express
 expressWs(app);
 
@@ -15,7 +14,6 @@ expressWs(app);
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/main.html'));
 });
-
 
 // Create WebSocket endpoint
 app.ws('/ws', (ws, req) => {
@@ -38,5 +36,6 @@ app.ws('/ws', (ws, req) => {
 
 // Start server on PORT 3000
 app.listen(3000, () => {
-    console.log('Server started on port 3000');
+    console.log(`Server started on http://localhost:3000`);
 });
+

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Preview</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f1f1f1
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, .1);
+            border-radius: 5px
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 24px;
+            color: #333
+        }
+
+        input[type=text] {
+            display: block;
+            width: 100%;
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            font-size: 16px
+        }
+
+        .chat-log {
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px
+        }
+
+        .chat-log .log-entry {
+            margin-bottom: 10px;
+            font-size: 16px;
+            color: #333
+        }
+
+        .chat-log .log-entry.server {
+            color: #009688
+        }
+
+        .chat-log .log-entry.client {
+            color: #2196f3
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>WebSocket Preview</h1>
+        <input type="text" id="textInput" placeholder="Type your message here..." maxlength="40">
+        <div class="chat-log" id="chatLog"></div>
+    </div>
+    <script>
+        // encode and decode functions (view source on server)
+        function decode(e, t) { const n = "abcdefghijklmnopqrstuvwxyz"; e = e.toLowerCase(); let l = ""; for (let o = 0; o < e.length; o++)if (n.includes(e[o])) { let c = (n.indexOf(e[o]) - t) % 26; c < 0 && (c += 26), l += n[c] } else l += e[o]; return l }
+        function encode(e, n) { const t = "abcdefghijklmnopqrstuvwxyz"; e = e.toLowerCase(); let o = ""; for (let l = 0; l < e.length; l++)if (t.includes(e[l])) { o += t[(t.indexOf(e[l]) + n) % 26] } else o += e[l]; return o }
+
+        /*
+        The code defines a function that takes a string and a number as input,
+        and shifts every letter in the string a specified number of characters
+        to the left or right by using the alphabet string. The shifted string 
+        is returned as output.
+
+        In this example, the encode function shifts it to the right, while the
+        decode function shifts it back to the left.
+
+        This is an example of a simple substitution cipher in which each letter
+        in the original text is shifted a certain number of places down the alphabet.
+        */
+
+        const textInput = document.getElementById('textInput');
+        const chatLog = document.getElementById('chatLog');
+
+        const ws = new WebSocket("ws://127.0.0.1:3000/ws");
+
+        ws.addEventListener("message", event => {
+            let message;
+            try {
+                message = JSON.parse(event.data);
+            } catch (e) {
+                console.log("An unexpected Error happened. Please debug traffic.")
+            }
+            if (typeof message == 'object' && message.type) {
+                switch (message.type) {
+                    case "welcome":{ // welcome message, shift 4
+                        let encoded = message.data;
+                        // decode;
+                        message.data = decode(encoded, 4)
+                        break;
+                    }
+                    case "response":
+                        let encoded = message.data;
+                        let shift = message.shift;
+
+                        // use the shifted int as a decode key
+                        message.data = decode(encoded, shift)
+
+                }
+                createServerLog(message)
+            }
+        })
+
+        textInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                const message = textInput.value.trim();
+                if (message) {
+                    createClientLog(message);
+                    textInput.value = '';
+                    ws.send(encode(message, 5))
+                }
+            }
+        });
+
+        function createServerLog(message) {
+            const { type, data } = message;
+
+            const logEntry = document.createElement('div');
+            logEntry.classList.add('log-entry', 'server');
+            logEntry.textContent = `Server: [${type}] - ${data}`;
+            chatLog.appendChild(logEntry);
+            chatLog.scrollTop = chatLog.scrollHeight;
+        }
+
+        function createClientLog(message) {
+            const logEntry = document.createElement('div');
+            logEntry.classList.add('log-entry', 'client');
+            logEntry.textContent = `Client: ${message}`;
+            chatLog.appendChild(logEntry);
+            chatLog.scrollTop = chatLog.scrollHeight;
+        }
+
+    </script>
+</body>
+
+</html>
